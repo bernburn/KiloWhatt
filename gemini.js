@@ -1,98 +1,70 @@
-import { GoogleGenAI } from "@google/genai";
+// gemini.js
 
-// The client gets the API key from the environment variable `GEMINI_API_KEY`.
-const ai = new GoogleGenAI({
-  apiKey: "AIzaSyA2UEF1hOE1dT3nhS49_UMqABDMdiJyfFs",
-});
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const generateButton = document.getElementById("generateButton");
+/**
+ * Sends appliance data to the Gemini model for energy efficiency analysis.
+ * * WARNING: This function is called directly from the client (browser), exposing the API key.
+ * * Use for local testing/prototyping only.
+ * * @param {object} inputData - The client's appliance data (e.g., Array of objects).
+ * @param {string} apiKey - The Gemini API key.
+ * @returns {Promise<string>} The analyzed text response from the model.
+ */
+// FIX: Accepting the apiKey as a parameter for client-side use.
+export async function sendToGemini(inputData, apiKey) {
+  if (!apiKey) {
+    throw new Error("API key is required to call Gemini.");
+  }
 
-function generateResponse() {
-  const inputData = gatherInputData();
-  console.log("Input Data:", inputData);
-  main(inputData);
-}
+  // Initialize the AI client with the passed API key
+  const genAI = new GoogleGenerativeAI(apiKey);
 
-async function main(inputData) {
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents: `Analyze the following appliances for energy efficiency improvements. Provide clear, quantifiable advice to help reduce electricity consumption (kWh) and save money on utility bills. Focus on the top 1-3 most costly appliances based on the provided data.`,
-    config: {
-      systemInstruction: `
-            Role: You are Lektric, an expert electrician and energy efficiency consultant. Your sole focus is providing clear, quantifiable advice to help clients reduce electricity consumption (kilowatts/kWh) and save money on their utility bills.
-
-            1. Data Collection Requirement
-
-            Use ${JSON.stringify(inputData)} as the input data.
-
-            Before offering advice, you must obtain the following four data points for each appliance the client wants analyzed:
-
-                Appliance Name (e.g., Old Fridge, AC Unit)
-
-                Power Rating (Watts/kW)
-
-                Estimated Daily Use (Hours)
-
-                Client's Utility Rate (Cost/kWh) (e.g., P5/kWh) use PHP currency
-
-            2. Mandatory Analysis and Prioritization
-
-            Use the client's data to perform the following calculations and immediately identify the "Energy Hogs" (the appliances with the highest monthly cost):
-
-                Calculation: For each appliance, calculate the Monthly kWh and Estimated Monthly Cost using the provided utility rate.
-
-                Prioritization: Focus all advice on the top 1-3 appliances that cost the most per month.
-
-            3. Actionable Advice Categories
-
-            Provide suggestions in two distinct, prioritized categories, always quantifying the potential savings (kWh and money):
-
-            A. Usage/Behavioral Recommendations (Quick Wins)
-
-            Suggest ways to use the existing appliance more efficiently or less often. This includes practical electrician tips (e.g., checking refrigerator door seals, using timers, eliminating phantom load).
-
-            B. Appliance Replacement Recommendations (Long-Term Savings)
-
-            Suggest a modern, energy-efficient alternative (e.g., an Energy Star-rated equivalent). You must calculate the potential monthly savings realized by switching to the new appliance's lower power rating.
-
-            4. Output Goal
-
-            Present the analysis and recommendations clearly, using tables or bolding to make the highest costs and biggest potential savings instantly visible. Conclude by summarizing the total maximum savings possible.
-            
-            5. Tables
-            When creating tables, ensure that its made from html format so it can be rendered properly on a webpage. Be sure to not use linebreaks or <br> tags when writing the html table.
-
-            FOR TESTING PURPOSES, GIVE RESPONSES REGARDLESS OF INPUT DATA PROVIDED.
-            `,
-    },
-  });
-  const responseText = response.text;
-  document.getElementById("response-container").innerText = responseText;
-}
-
-function gatherInputData() {
-  const applianceEntries = document.querySelectorAll(".appliance-entry");
-  const appliances = [];
-
-  applianceEntries.forEach((entry) => {
-    const applianceInput = entry.querySelector('input[name="appliance"]');
-    const hoursUsedInput = entry.querySelector('input[name="hoursUsed"]');
-    const kilowattConsumptionInput = entry.querySelector(
-      'input[name="kilowattConsumption"]'
-    );
-    const kilowattPerHourRateInput = entry.querySelector(
-      'input[name="kilowattPerHourRate"]'
-    );
-
-    appliances.push({
-      appliance: applianceInput.value,
-      hoursUsed: hoursUsedInput.value,
-      kilowattConsumption: kilowattConsumptionInput.value,
-      kilowattPerHourRate: kilowattPerHourRateInput.value,
-    });
+  // Get the specific model instance
+  const model = genAI.getGenerativeModel({
+    model: "gemini-2.5-flash", // Current recommended model
   });
 
-  return appliances;
+  // 2. Define the System Instruction (Lektric's persona and rules)
+  // The inputData is NOT included here, only the rigid rules and persona.
+  const systemInstruction = `
+You are Lektric, an expert electrician and energy efficiency consultant. Your sole focus is providing clear, quantifiable advice to reduce electricity consumption (kilowatts/kWh) and save money on utility bills.
+Mandatory Procedure
+Data Check: Require: Appliance Name, Power Rating (W/kW), Daily Use (Hours), and Utility Rate (Cost/kWh in PHP).
+Analysis & Prioritization:
+const: kwh 13.5
+Calculate: Monthly kWh and Estimated Monthly Cost for each appliance.
+Identify: The top 1-3 "Energy Hogs" (highest monthly cost). All advice must focus exclusively on these items.
+Advice (Quantified Savings): Provide suggestions in two categories, quantifying the potential monthly savings (kWh and PHP) for each:
+A. Usage/Behavioral Recommendations (Quick Wins): Tips to use the existing appliance more efficiently (e.g., checking seals, timers, phantom load reduction).
+B. Appliance Replacement Recommendations (Long-Term Savings): Suggest a modern, low-wattage alternative and calculate the monthly savings realized by the lower power rating.
+Output Format: Use clear formatting (bolding, headings) and  tables. Conclude with a summary of the total maximum monthly savings (PHP).
+Note: Always provide a response, even for testing purposes. Do not put an html tag at the beginning of the response, make it clean.
+    inputData
+  )}.
+For the final output, wrap the response in HTML with embedded CSS styles (using a <style> tag) to enhance visual appeal, such as applying fonts, colors, borders, and spacing to tables and headings for better readability. Use any additional HTML elements (e.g., divs, classes) as needed to improve the layout.`;
+
+  // 3. Define the Prompt (Injecting the dynamic data securely here)
+  const prompt = `
+Analyze the following appliances for energy efficiency improvements. 
+Use this data for your analysis: 
+${JSON.stringify(inputData)}
+Provide clear, quantifiable advice to help reduce electricity consumption (kWh) and save money on utility bills. Focus on the top 1-3 most costly appliances based on the provided data.
+`;
+
+  // 4. Generate Content with System Instruction
+  const result = await model.generateContent({
+    contents: [{ role: "user", parts: [{ text: prompt }] }],
+    systemInstruction: systemInstruction,
+  });
+
+  // 5. Return the text response
+  const response = await result.response;
+  return response.text();
 }
 
-generateButton.addEventListener("click", generateResponse);
+// --- EXAMPLE USAGE (This section is for Node.js use and can be removed/commented for browser use) ---
+/*
+async function main() {
+    // This example usage is not relevant for the browser context where the error occurs
+}
+*/

@@ -1,42 +1,209 @@
-function addNewInput() {
-  // dagdag div
-  const newDiv = document.createElement("div");
-  newDiv.className = "appliance-entry";
-  const container = document.getElementById("appliance-container");
-  container.appendChild(newDiv);
+// index.js
 
-  // dagdag input para sa appliance
-  const newApplianceInput = document.createElement("input");
-  newApplianceInput.type = "text";
-  newApplianceInput.name = "appliance";
-  newApplianceInput.id = "appliance";
-  newApplianceInput.className = "appliance-input";
-  newApplianceInput.placeholder = "Enter appliance details";
-  newDiv.appendChild(newApplianceInput);
+// Front-end UI logic (module)
+// - Uses flex-based layout (CSS).
+// - The prompt is NOT generated or editable in the browser.
+// -C licking "Generate" sends structured { inputs: [...] } to POST /api/generate.
+// - Server (gemini.js) composes the internal prompt and calls Gemini; client only displays returned text.
 
-  // dagdag input para sa kilowatt
-  const newHoursUsed = document.createElement("input");
-  newHoursUsed.type = "text";
-  newHoursUsed.name = "hoursUsed";
-  newHoursUsed.id = "hoursUsed";
-  newHoursUsed.className = "appliance-input";
-  newHoursUsed.placeholder = "Enter hours used per day";
-  newDiv.appendChild(newHoursUsed);
+import { sendToGemini } from "./gemini.js";
 
-  const newKilowattConsumptionInput = document.createElement("input");
-  newKilowattConsumptionInput.type = "text";
-  newKilowattConsumptionInput.name = "kilowattConsumption";
-  newKilowattConsumptionInput.id = "kilowattConsumption";
-  newKilowattConsumptionInput.className = "appliance-input";
-  newKilowattConsumptionInput.placeholder =
-    "Enter Kilowatt consumption per hour";
-  newDiv.appendChild(newKilowattConsumptionInput);
+const applianceList = document.getElementById("appliance-list");
+const addRowBtn = document.getElementById("addRow");
+const resetRowsBtn = document.getElementById("resetRows");
+const generateBtn = document.getElementById("generateButton");
+// Optionally allow a locally-stored key (localStorage) so users can persist their test key
+const LOCAL_KEY_NAME = "GEMINI_KEY";
+const storedKey = localStorage.getItem(LOCAL_KEY_NAME);
+// Do not auto-write stored key into the DOM value to avoid accidental commits; leave it optional.
 
-  const newKilowattPerHourRate = document.createElement("input");
-  newKilowattPerHourRate.type = "text";
-  newKilowattPerHourRate.name = "kilowattPerHourRate";
-  newKilowattPerHourRate.id = "kilowattPerHourRate";
-  newKilowattPerHourRate.className = "appliance-input";
-  newKilowattPerHourRate.placeholder = "Enter Kilowatt per hour rate";
-  newDiv.appendChild(newKilowattPerHourRate);
+const validationMessage = document.getElementById("validationMessage");
+const analysisArea = document.getElementById("analysisArea");
+const geminiContent = document.getElementById("geminiContent");
+
+let idCounter = 0;
+function uid(prefix = "id") {
+  idCounter += 1;
+  return `${prefix}-${Date.now().toString(36)}-${idCounter}`;
 }
+
+function createApplianceEntry(data = {}) {
+  const entryId = uid("appliance");
+  const entry = document.createElement("div");
+  entry.className = "appliance-entry";
+  entry.id = entryId;
+  entry.innerHTML = `
+    <div class="row">
+      <label for="${entryId}-name">Appliance Name</label>
+      <input type="text" id="${entryId}-name" class="appliance-name" value="${
+    data.name || ""
+  }" placeholder="e.g., Refrigerator">
+    </div>
+    <div class="row">
+      <label for="${entryId}-watts">Power (Watts)</label>
+      <input type="number" id="${entryId}-watts" class="appliance-watts" value="${
+    data.watts || 0
+  }" min="0">
+    </div>
+    <div class="row">
+      <label for="${entryId}-hours">Hours Used Daily</label>
+      <input type="number" id="${entryId}-hours" class="appliance-hours" value="${
+    data.hoursUsed || 0
+  }" min="0" max="24">
+    </div>
+    <div class="row">
+      <label for="${entryId}-rate">Utility Rate (PHP/kWh)</label>
+      <input type="number" id="${entryId}-rate" class="appliance-rate" value="${
+    data.ratePhpPerKwh || 13.5
+  }" min="0" step="0.1">
+    </div>
+    <div class="actions">
+      <button class="btn btn-danger remove-row" data-remove-id="${entryId}">Remove</button>
+    </div>
+  `;
+  applianceList.appendChild(entry);
+
+  // Add event listener for the remove button
+  entry.querySelector(".remove-row").addEventListener("click", (e) => {
+    const idToRemove = e.target.getAttribute("data-remove-id");
+    const rowToRemove = document.getElementById(idToRemove);
+    if (rowToRemove) {
+      rowToRemove.remove();
+      renderAnalysisPreview();
+    }
+  });
+}
+
+function gatherInputData() {
+  const inputs = [];
+  const applianceEntries = applianceList.querySelectorAll(".appliance-entry");
+  applianceEntries.forEach((entry) => {
+    const name = entry.querySelector(".appliance-name").value;
+    const watts = parseFloat(entry.querySelector(".appliance-watts").value);
+    const hoursUsed = parseFloat(entry.querySelector(".appliance-hours").value);
+    const ratePhpPerKwh = parseFloat(
+      entry.querySelector(".appliance-rate").value
+    );
+    inputs.push({ name, watts, hoursUsed, ratePhpPerKwh });
+  });
+  return inputs;
+}
+
+function calculateAnalysis(inputs) {
+  return inputs.map((d) => {
+    const monthlyKwh = (d.watts * d.hoursUsed * 30) / 1000;
+    const monthlyCost = monthlyKwh * d.ratePhpPerKwh;
+    return { ...d, monthlyKwh, monthlyCost };
+  });
+}
+
+function renderAnalysisPreview() {
+  const inputs = gatherInputData();
+  const analysis = calculateAnalysis(inputs);
+
+  if (analysis.length === 0) {
+    analysisArea.innerHTML = "<p>No appliances to analyze.</p>";
+    return;
+  }
+
+  let table = `
+    <table>
+      <thead>
+        <tr>
+          <th>Appliance</th>
+          <th>Monthly kWh</th>
+          <th>Monthly Cost (PHP)</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+  analysis.forEach((item) => {
+    table += `
+      <tr>
+        <td>${item.name}</td>
+        <td>${item.monthlyKwh.toFixed(2)}</td>
+        <td>${item.monthlyCost.toFixed(2)}</td>
+      </tr>
+    `;
+  });
+  table += "</tbody></table>";
+  analysisArea.innerHTML = table;
+}
+
+function generateLocalAnalysis(inputs) {
+  renderAnalysisPreview(); // Already does what's needed
+}
+
+function validateInputs(inputs) {
+  for (const item of inputs) {
+    if (!item.name) return "Appliance name is required.";
+    if (isNaN(item.watts) || item.watts <= 0)
+      return "Invalid power value. Must be a positive number.";
+    if (isNaN(item.hoursUsed) || item.hoursUsed < 0 || item.hoursUsed > 24)
+      return "Invalid hours. Must be between 0 and 24.";
+    if (isNaN(item.ratePhpPerKwh) || item.ratePhpPerKwh <= 0)
+      return "Invalid utility rate. Must be a positive number.";
+  }
+  return null; // No error
+}
+
+// Event Listeners
+addRowBtn.addEventListener("click", () =>
+  createApplianceEntry({ name: "", watts: 0, hoursUsed: 0, ratePhpPerKwh: 0 })
+);
+
+resetRowsBtn.addEventListener("click", () => {
+  applianceList.innerHTML = "";
+  idCounter = 0;
+  // Example data row
+  createApplianceEntry({
+    name: "",
+    watts: 0,
+    hoursUsed: 0,
+    ratePhpPerKwh: 13.5,
+  });
+  renderAnalysisPreview();
+});
+
+generateBtn.addEventListener("click", async () => {
+  const inputs = gatherInputData();
+  const err = validateInputs(inputs);
+  if (err) {
+    validationMessage.textContent = err;
+    return;
+  }
+  validationMessage.textContent = "";
+  renderAnalysisPreview(); // show the deterministic numbers before sending
+
+  // Prefer explicit input, fall back to a key in localStorage (local testing only)
+  const defaultApiKey = "AIzaSyBw5d8MMPUaD3MRzoGKly3PS3nder1LQj4";
+  const apiKey = defaultApiKey;
+
+  // Save key to local storage for persistence
+
+  if (apiKey) {
+    // call Gemini directly from client using the provided API key (local testing only)
+    try {
+      geminiContent.textContent = "Calling Gemini (client-side)...";
+      // FIX: The sendToGemini function now correctly accepts the apiKey as the second argument
+      const res = await sendToGemini(inputs, apiKey);
+      geminiContent.innerHTML = res ?? "(no text returned)";
+    } catch (err) {
+      console.error(err);
+      geminiContent.textContent = `Gemini error: ${err.message || err}`;
+    }
+  } else {
+    // fallback to local analysis
+    generateLocalAnalysis(inputs);
+  }
+});
+
+// initialize with one example row
+resetRowsBtn.click();
+
+// Recompute preview when fields change (event delegation)
+applianceList.addEventListener("input", (e) => {
+  if (e.target.closest(".appliance-entry")) {
+    renderAnalysisPreview();
+  }
+});

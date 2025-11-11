@@ -1,27 +1,86 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Document</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>KILOWHATT?</title>
     <link rel="stylesheet" href="styles.css" />
+    <link rel="icon" href="./assets/LOGO.png" />
   </head>
+
   <body>
-    <div class="container">
-      <div id="appliance-container" class="appliance-input container"></div>
-      <button id="addInput" onclick="addNewInput()">+</button>
-      <button id="generateButton">Generate a Response</button>
+    <header class="header app-header">
+      <img src="./assets/LOGO.png" width="50px" />
+      <h1>KILOWHATT?</h1>
+      <p class="sub"></p>
+    </header>
+    <div class="app">
+      <main class="main-grid">
+        <section class="panel panel-left">
+          <div class="panel-header">
+            <h2>Appliances</h2>
+            <div class="panel-actions">
+              <button id="addRow" class="btn btn-primary">
+                + Add Appliance
+              </button>
+              <button id="resetRows" class="btn btn-ghost">Reset</button>
+            </div>
+          </div>
+
+          <div
+            id="appliance-list"
+            class="appliance-list"
+            aria-live="polite"
+          ></div>
+
+          <div class="panel-footer">
+            <div
+              id="validationMessage"
+              class="validation"
+              aria-live="assertive"
+            ></div>
+            <div class="form-actions" style="margin-top: 12px">
+              <button id="generateButton" class="btn btn-success">
+                Generate Report
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel panel-right">
+          <div class="panel-header">
+            <h2>Analysis Preview</h2>
+            <div class="small-note">Calculations use 30 days/month</div>
+          </div>
+
+          <div id="analysisArea" class="analysis-area"></div>
+
+          <div class="panel-divider" style="height: 12px"></div>
+        </section>
+        <div class="panel panel-bottom">
+          <div class="panel-header">
+            <h2>Gemini Output</h2>
+          </div>
+
+          <div id="geminiArea" class="gemini-area">
+            <div id="geminiCard" class="card">
+              <div class="card-body" id="geminiContent">
+                No output yet. Press Generate to send inputs to the server and
+                receive Gemini's output here.
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
-    <div id="response-container"></div>
 
     <script type="importmap">
       {
         "imports": {
-          "@google/genai": "https://esm.run/@google/genai"
+          "@google/generative-ai": "https://esm.run/@google/generative-ai"
         }
       }
     </script>
-    <script src="gemini.js" type="module"></script>
-    <script src="index.js"></script>
+    <script type="module" src="index.js"></script>
   </body>
 </html>
