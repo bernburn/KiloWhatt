@@ -257,3 +257,99 @@ table td {
     gap: 8px;
   }
 }
+
+.full-width {
+  flex: 1 1 100%;
+}
+
+/* Group the 4 bottom inputs horizontally */
+.row-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  width: 100%;
+}
+
+/* Each field in bottom row */
+.row-group .row {
+  flex: 1 1 calc(25% - 10px);
+  min-width: 140px;
+}
+
+.autocomplete-container {
+  position: relative;
+}
+
+.autocomplete-list {
+  position: absolute;
+  top: 62px;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  max-height: 160px;
+  overflow-y: auto;
+  z-index: 20;
+}
+
+.auto-item {
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.auto-item:hover {
+  background: #f6f6f6;
+}
+
+/* Appliance Type dropdown button */
+.type-wrapper {
+  position: relative;
+}
+
+.type-wrapper input {
+  width: 100%;
+  padding-right: 32px; /* space for dropdown icon */
+}
+
+.type-dropdown-btn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 2px 6px;
+  font-size: 0.7rem;
+  background: #e7ecef;
+  border: 1px solid #cfd5da;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.type-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  max-height: 160px;
+  overflow-y: auto;
+  z-index: 20;
+  display: none;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+}
+
+.type-item {
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.type-item:hover {
+  background: #f2f2f2;
+}
+
+.type-item.disabled {
+  color: #aaa;
+  cursor: default;
+}

@@ -21,56 +21,172 @@ const validationMessage = document.getElementById("validationMessage");
 const analysisArea = document.getElementById("analysisArea");
 const geminiContent = document.getElementById("geminiContent");
 
+const appliances = [
+  { applianceName: ["Air Conditioner","Aircon"], applianceType: ["Normal","Inverter",], power: 30 },
+  { applianceName: ["Refrigerator"], applianceType: [], power: 30 },
+  { applianceName: ["Desktop PC"], applianceType: ["Gaming","Office",], power: 30 },
+  { applianceName: ["TV"], applianceType: ["Gaming","Office",], power: 30 },
+];
+
+
 let idCounter = 0;
 function uid(prefix = "id") {
   idCounter += 1;
   return `${prefix}-${Date.now().toString(36)}-${idCounter}`;
 }
 
+/* ---------------------------------------------------------
+   CREATE APPLIANCE ENTRY (FULLY FIXED)
+--------------------------------------------------------- */
 function createApplianceEntry(data = {}) {
   const entryId = uid("appliance");
   const entry = document.createElement("div");
   entry.className = "appliance-entry";
   entry.id = entryId;
+
   entry.innerHTML = `
-    <div class="row">
+    <div class="row full-width autocomplete-container">
       <label for="${entryId}-name">Appliance Name</label>
-      <input type="text" id="${entryId}-name" class="appliance-name" value="${
-    data.name || ""
-  }" placeholder="e.g., Refrigerator">
+      <input type="text" id="${entryId}-name" class="appliance-name"
+        value="${data.name || ""}" placeholder="e.g., Aircon" autocomplete="off">
+      <div class="autocomplete-list"></div>
     </div>
-    <div class="row">
-      <label for="${entryId}-watts">Power (Watts)</label>
-      <input type="number" id="${entryId}-watts" class="appliance-watts" value="${
-    data.watts || 0
-  }" min="0">
+
+    <div class="row-group">
+      <div class="row">
+        <label for="${entryId}-type">Appliance Type</label>
+        <div class="type-wrapper">
+          <input type="text" id="${entryId}-type" class="appliance-type" value="${data.type || ""}" placeholder="e.g., Inverter">
+          <button class="type-dropdown-btn" type="button">▼</button>
+          <div class="type-dropdown-menu"></div>
+        </div>
+      </div>
+
+      <div class="row">
+        <label for="${entryId}-watts">Power (Watts)</label>
+        <input type="number" id="${entryId}-watts" class="appliance-watts" value="${data.watts || 0}" min="0">
+      </div>
+
+      <div class="row">
+        <label for="${entryId}-hours">Hours Used Daily</label>
+        <input type="number" id="${entryId}-hours" class="appliance-hours" value="${data.hoursUsed || 0}" min="0" max="24">
+      </div>
+
+      <div class="row">
+        <label for="${entryId}-rate">Utility Rate (PHP/kWh)</label>
+        <input type="number" id="${entryId}-rate" class="appliance-rate" value="${data.ratePhpPerKwh || 13.5}" min="0" step="0.1">
+      </div>
     </div>
-    <div class="row">
-      <label for="${entryId}-hours">Hours Used Daily</label>
-      <input type="number" id="${entryId}-hours" class="appliance-hours" value="${
-    data.hoursUsed || 0
-  }" min="0" max="24">
-    </div>
-    <div class="row">
-      <label for="${entryId}-rate">Utility Rate (PHP/kWh)</label>
-      <input type="number" id="${entryId}-rate" class="appliance-rate" value="${
-    data.ratePhpPerKwh || 13.5
-  }" min="0" step="0.1">
-    </div>
+
     <div class="actions">
       <button class="btn btn-danger remove-row" data-remove-id="${entryId}">Remove</button>
     </div>
   `;
+
   applianceList.appendChild(entry);
 
-  // Add event listener for the remove button
-  entry.querySelector(".remove-row").addEventListener("click", (e) => {
-    const idToRemove = e.target.getAttribute("data-remove-id");
-    const rowToRemove = document.getElementById(idToRemove);
-    if (rowToRemove) {
-      rowToRemove.remove();
-      renderAnalysisPreview();
+  /* ---------------------------------------------------------
+      ELEMENT REFERENCES (PER-ROW)
+  --------------------------------------------------------- */
+  const nameInput = entry.querySelector(".appliance-name");
+  const autoBox = entry.querySelector(".autocomplete-list");
+  const typeInput = entry.querySelector(".appliance-type");
+  const typeDropdownBtn = entry.querySelector(".type-dropdown-btn");
+  const typeDropdownMenu = entry.querySelector(".type-dropdown-menu");
+  const wattsInput = entry.querySelector(".appliance-watts");
+
+  /* ---------------------------------------------------------
+      AUTOCOMPLETE LOGIC
+  --------------------------------------------------------- */
+  function updateSuggestions() {
+    const text = nameInput.value.toLowerCase();
+    autoBox.innerHTML = "";
+    if (!text) return;
+
+    const matches = appliances.filter(a =>
+      a.applianceName.some(n => n.toLowerCase().includes(text))
+    );
+
+    matches.forEach(match => {
+      match.applianceName.forEach(name => {
+        const item = document.createElement("div");
+        item.className = "auto-item";
+        item.textContent = name;
+
+        item.onclick = () => applyAppliance(match, name);
+        autoBox.appendChild(item);
+      });
+    });
+  }
+
+  /* ---------------------------------------------------------
+      FILL TYPE DROPDOWN
+  --------------------------------------------------------- */
+  function fillTypeDropdown(types) {
+    typeDropdownMenu.innerHTML = "";
+
+    if (!types || types.length === 0) {
+      typeDropdownMenu.innerHTML = `<div class="type-item disabled">No preset types</div>`;
+      return;
     }
+
+    types.forEach(t => {
+      const item = document.createElement("div");
+      item.className = "type-item";
+      item.textContent = t;
+
+      item.onclick = () => {
+        typeInput.value = t;
+        typeDropdownMenu.style.display = "none";
+      };
+
+      typeDropdownMenu.appendChild(item);
+    });
+  }
+
+  /* toggle dropdown */
+  typeDropdownBtn.onclick = () => {
+    typeDropdownMenu.style.display =
+      typeDropdownMenu.style.display === "block" ? "none" : "block";
+  };
+
+  /* close when clicking outside */
+  document.addEventListener("click", (e) => {
+    if (!entry.contains(e.target)) {
+      typeDropdownMenu.style.display = "none";
+      autoBox.innerHTML = "";
+    }
+  });
+
+  /* ---------------------------------------------------------
+      APPLY APPLIANCE SELECTED FROM AUTOCOMPLETE
+  --------------------------------------------------------- */
+  function applyAppliance(entryData, selectedName) {
+    nameInput.value = selectedName;
+
+    fillTypeDropdown(entryData.applianceType);
+    typeInput.value = entryData.applianceType[0] || "";
+    wattsInput.value = entryData.power;
+
+    autoBox.innerHTML = "";
+    renderAnalysisPreview();
+  }
+
+  /* autocomplete input listener */
+  nameInput.addEventListener("input", () => {
+    updateSuggestions();
+
+    const match = appliances.find(ap =>
+      ap.applianceName.some(n => n.toLowerCase() === nameInput.value.toLowerCase())
+    );
+
+    if (match) applyAppliance(match, nameInput.value);
+  });
+
+  /* remove row */
+  entry.querySelector(".remove-row").addEventListener("click", () => {
+    entry.remove();
+    renderAnalysisPreview();
   });
 }
 
