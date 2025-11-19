@@ -20,13 +20,79 @@ const storedKey = localStorage.getItem(LOCAL_KEY_NAME);
 const validationMessage = document.getElementById("validationMessage");
 const analysisArea = document.getElementById("analysisArea");
 const geminiContent = document.getElementById("geminiContent");
+const globalAdvancedToggle = document.getElementById("globalAdvancedToggle");
+const globalAdvancedSection = document.getElementById("globalAdvancedSection");
+const globalRateInput = document.getElementById("global-rate");
+const globalVoltageSelect = document.getElementById("global-voltage");
+
+const voltageRegions = [
+  { label: "NCR (Metro Manila) - Meralco (230V)", value: "NCR (Metro Manila)", rate: 13.4702 },
+  { label: "Region 3 (Central Luzon) - Meralco (230V)", value: "Region 3 (Central Luzon)", rate: 13.4702 },
+  { label: "Cebu Province (Metro Cebu) - VECO (230V)", value: "Cebu Province (Metro Cebu)", rate: 11.51 },
+  { label: "Iloilo City (Region 6) - MORE Power (230V)", value: "Iloilo City (Region 6)", rate: 12.6195 },
+  { label: "Southern Cebu - CEBECO I (230V)", value: "Southern Cebu", rate: 13.30 },
+];
 
 const appliances = [
-  { applianceName: ["Air Conditioner","Aircon"], applianceType: ["Normal","Inverter",], power: 30 },
-  { applianceName: ["Refrigerator"], applianceType: [], power: 30 },
-  { applianceName: ["Desktop PC"], applianceType: ["Gaming","Office",], power: 30 },
-  { applianceName: ["TV"], applianceType: ["Gaming","Office",], power: 30 },
+  {
+    applianceName: ["Air Conditioner", "Aircon"],
+    applianceType: ["Normal", "Inverter"],
+    power: 1200,
+    usageProfile: { default: 85, Normal: 95, Inverter: 70 },
+    defaultRate: 13.5,
+    defaultVoltageRegion: "NCR (Metro Manila)",
+  },
+  {
+    applianceName: ["Refrigerator"],
+    applianceType: [],
+    power: 180,
+    usageProfile: { default: 45 },
+    defaultRate: 13.5,
+    defaultVoltageRegion: "NCR (Metro Manila)",
+  },
+  {
+    applianceName: ["Desktop PC"],
+    applianceType: ["Gaming", "Office"],
+    power: 450,
+    usageProfile: { default: 65, Gaming: 90, Office: 55 },
+    defaultRate: 13.5,
+    defaultVoltageRegion: "NCR (Metro Manila)",
+  },
+  {
+    applianceName: ["TV"],
+    applianceType: ["LED", "OLED"],
+    power: 160,
+    usageProfile: { default: 55, LED: 50, OLED: 65 },
+    defaultRate: 13.5,
+    defaultVoltageRegion: "NCR (Metro Manila)",
+  },
 ];
+
+function syncRateWithRegion() {
+  if (!globalVoltageSelect || !globalRateInput) return;
+  const selectedValue = globalVoltageSelect.value;
+  const region = voltageRegions.find((r) => r.value === selectedValue);
+  if (region) {
+    globalRateInput.value = region.rate;
+  }
+}
+
+function populateVoltageOptions() {
+  if (!globalVoltageSelect) return;
+  globalVoltageSelect.innerHTML = "";
+  voltageRegions.forEach((region) => {
+    const option = document.createElement("option");
+    option.value = region.value;
+    option.textContent = region.label;
+    globalVoltageSelect.appendChild(option);
+  });
+  if (voltageRegions.length) {
+    globalVoltageSelect.value = voltageRegions[0].value;
+  }
+  syncRateWithRegion();
+}
+
+populateVoltageOptions();
 
 
 let idCounter = 0;
@@ -72,11 +138,15 @@ function createApplianceEntry(data = {}) {
         <input type="number" id="${entryId}-hours" class="appliance-hours" value="${data.hoursUsed || 0}" min="0" max="24">
       </div>
 
-      <div class="row">
-        <label for="${entryId}-rate">Utility Rate (PHP/kWh)</label>
-        <input type="number" id="${entryId}-rate" class="appliance-rate" value="${data.ratePhpPerKwh || 13.5}" min="0" step="0.1">
+      <div class="row slider-row">
+        <label for="${entryId}-behavior">Estimated Usage Behavior (%)</label>
+        <div class="slider-wrapper">
+          <input type="range" id="${entryId}-behavior" class="appliance-behavior" min="10" max="100" step="5" value="${data.usageBehaviorPercent || 100}">
+          <span class="behavior-value">${data.usageBehaviorPercent || 100}%</span>
+        </div>
       </div>
     </div>
+
 
     <div class="actions">
       <button class="btn btn-danger remove-row" data-remove-id="${entryId}">Remove</button>
@@ -94,6 +164,10 @@ function createApplianceEntry(data = {}) {
   const typeDropdownBtn = entry.querySelector(".type-dropdown-btn");
   const typeDropdownMenu = entry.querySelector(".type-dropdown-menu");
   const wattsInput = entry.querySelector(".appliance-watts");
+  const behaviorInput = entry.querySelector(".appliance-behavior");
+  const behaviorValue = entry.querySelector(".behavior-value");
+
+  let matchedApplianceData = null;
 
   /* ---------------------------------------------------------
       AUTOCOMPLETE LOGIC
@@ -138,6 +212,12 @@ function createApplianceEntry(data = {}) {
       item.onclick = () => {
         typeInput.value = t;
         typeDropdownMenu.style.display = "none";
+        if (matchedApplianceData) {
+          const behavior = resolveBehaviorValue(matchedApplianceData, t);
+          if (behavior != null) {
+            applyBehaviorValue(behavior);
+          }
+        }
       };
 
       typeDropdownMenu.appendChild(item);
@@ -158,15 +238,43 @@ function createApplianceEntry(data = {}) {
     }
   });
 
+  function resolveBehaviorValue(entryData, selectedType) {
+    if (!entryData?.usageProfile) return null;
+    if (selectedType) {
+      const keys = Object.keys(entryData.usageProfile);
+      const matchKey = keys.find(
+        (key) => key.toLowerCase() === selectedType.toLowerCase()
+      );
+      if (matchKey) {
+        return entryData.usageProfile[matchKey];
+      }
+    }
+    return entryData.usageProfile.default ?? null;
+  }
+
+  function applyBehaviorValue(value, { skipPreview = false } = {}) {
+    if (typeof value !== "number") return;
+    behaviorInput.value = value;
+    behaviorValue.textContent = `${value}%`;
+    if (!skipPreview) {
+      renderAnalysisPreview();
+    }
+  }
+
   /* ---------------------------------------------------------
       APPLY APPLIANCE SELECTED FROM AUTOCOMPLETE
   --------------------------------------------------------- */
   function applyAppliance(entryData, selectedName) {
     nameInput.value = selectedName;
+    matchedApplianceData = entryData;
 
     fillTypeDropdown(entryData.applianceType);
     typeInput.value = entryData.applianceType[0] || "";
     wattsInput.value = entryData.power;
+    const initialBehavior = resolveBehaviorValue(entryData, typeInput.value);
+    if (initialBehavior != null) {
+      applyBehaviorValue(initialBehavior, { skipPreview: true });
+    }
 
     autoBox.innerHTML = "";
     renderAnalysisPreview();
@@ -180,8 +288,26 @@ function createApplianceEntry(data = {}) {
       ap.applianceName.some(n => n.toLowerCase() === nameInput.value.toLowerCase())
     );
 
-    if (match) applyAppliance(match, nameInput.value);
+    if (match) {
+      applyAppliance(match, nameInput.value);
+    } else {
+      matchedApplianceData = null;
+    }
   });
+
+  typeInput.addEventListener("input", () => {
+    if (!matchedApplianceData) return;
+    const behavior = resolveBehaviorValue(matchedApplianceData, typeInput.value.trim());
+    if (behavior != null) {
+      applyBehaviorValue(behavior);
+    }
+  });
+
+  behaviorInput.addEventListener("input", () => {
+    behaviorValue.textContent = `${behaviorInput.value}%`;
+    renderAnalysisPreview();
+  });
+
 
   /* remove row */
   entry.querySelector(".remove-row").addEventListener("click", () => {
@@ -193,23 +319,38 @@ function createApplianceEntry(data = {}) {
 function gatherInputData() {
   const inputs = [];
   const applianceEntries = applianceList.querySelectorAll(".appliance-entry");
+  const globalRate = parseFloat(globalRateInput.value);
+  const globalVoltage = globalVoltageSelect.value;
   applianceEntries.forEach((entry) => {
     const name = entry.querySelector(".appliance-name").value;
+    const type = entry.querySelector(".appliance-type").value;
     const watts = parseFloat(entry.querySelector(".appliance-watts").value);
     const hoursUsed = parseFloat(entry.querySelector(".appliance-hours").value);
-    const ratePhpPerKwh = parseFloat(
-      entry.querySelector(".appliance-rate").value
+    const usageBehaviorPercent = parseFloat(
+      entry.querySelector(".appliance-behavior").value
     );
-    inputs.push({ name, watts, hoursUsed, ratePhpPerKwh });
+    inputs.push({
+      name,
+      type,
+      watts,
+      hoursUsed,
+      ratePhpPerKwh: globalRate,
+      usageBehaviorPercent,
+      voltageRegion: globalVoltage,
+    });
   });
   return inputs;
 }
 
 function calculateAnalysis(inputs) {
   return inputs.map((d) => {
-    const monthlyKwh = (d.watts * d.hoursUsed * 30) / 1000;
+    const behaviorFactor = isNaN(d.usageBehaviorPercent)
+      ? 1
+      : d.usageBehaviorPercent / 100;
+    const adjustedWatts = d.watts * behaviorFactor;
+    const monthlyKwh = (adjustedWatts * d.hoursUsed * 30) / 1000;
     const monthlyCost = monthlyKwh * d.ratePhpPerKwh;
-    return { ...d, monthlyKwh, monthlyCost };
+    return { ...d, adjustedWatts, monthlyKwh, monthlyCost };
   });
 }
 
@@ -227,6 +368,7 @@ function renderAnalysisPreview() {
       <thead>
         <tr>
           <th>Appliance</th>
+          <th>Usage Behavior</th>
           <th>Monthly kWh</th>
           <th>Monthly Cost (PHP)</th>
         </tr>
@@ -234,9 +376,13 @@ function renderAnalysisPreview() {
       <tbody>
   `;
   analysis.forEach((item) => {
+    const usageDisplay = Number.isFinite(item.usageBehaviorPercent)
+      ? `${item.usageBehaviorPercent.toFixed(0)}%`
+      : "—";
     table += `
       <tr>
         <td>${item.name}</td>
+        <td>${usageDisplay}</td>
         <td>${item.monthlyKwh.toFixed(2)}</td>
         <td>${item.monthlyCost.toFixed(2)}</td>
       </tr>
@@ -259,13 +405,24 @@ function validateInputs(inputs) {
       return "Invalid hours. Must be between 0 and 24.";
     if (isNaN(item.ratePhpPerKwh) || item.ratePhpPerKwh <= 0)
       return "Invalid utility rate. Must be a positive number.";
+    if (
+      isNaN(item.usageBehaviorPercent) ||
+      item.usageBehaviorPercent < 10 ||
+      item.usageBehaviorPercent > 100
+    )
+      return "Usage behavior must be between 10% and 100%.";
   }
   return null; // No error
 }
 
 // Event Listeners
 addRowBtn.addEventListener("click", () =>
-  createApplianceEntry({ name: "", watts: 0, hoursUsed: 0, ratePhpPerKwh: 0 })
+  createApplianceEntry({
+    name: "",
+    watts: 0,
+    hoursUsed: 0,
+    usageBehaviorPercent: 100,
+  })
 );
 
 resetRowsBtn.addEventListener("click", () => {
@@ -276,7 +433,7 @@ resetRowsBtn.addEventListener("click", () => {
     name: "",
     watts: 0,
     hoursUsed: 0,
-    ratePhpPerKwh: 13.5,
+    usageBehaviorPercent: 100,
   });
   renderAnalysisPreview();
 });
@@ -323,3 +480,25 @@ applianceList.addEventListener("input", (e) => {
     renderAnalysisPreview();
   }
 });
+
+if (globalVoltageSelect) {
+  globalVoltageSelect.addEventListener("change", () => {
+    syncRateWithRegion();
+    renderAnalysisPreview();
+  });
+}
+
+if (globalRateInput) {
+  globalRateInput.addEventListener("input", () => {
+    renderAnalysisPreview();
+  });
+}
+
+if (globalAdvancedToggle && globalAdvancedSection) {
+  globalAdvancedToggle.addEventListener("click", () => {
+    const isOpen = globalAdvancedSection.classList.toggle("open");
+    globalAdvancedSection.setAttribute("aria-hidden", (!isOpen).toString());
+    globalAdvancedToggle.setAttribute("aria-expanded", isOpen.toString());
+  });
+}
+

@@ -353,3 +353,78 @@ table td {
   color: #aaa;
   cursor: default;
 }
+
+.slider-row {
+  min-width: 220px;
+}
+
+.slider-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.slider-wrapper input[type="range"] {
+  flex: 1;
+  cursor: pointer;
+}
+
+.behavior-value {
+  width: 50px;
+  text-align: center;
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.advanced-wrapper {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.advanced-toggle-btn {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f6f7fb;
+  color: var(--accent);
+  border: 1px solid #e4e8ef;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.advanced-toggle-btn .chevron {
+  transition: transform 0.2s ease;
+}
+
+.advanced-toggle-btn[aria-expanded="true"] .chevron {
+  transform: rotate(180deg);
+}
+
+.advanced-section {
+  display: none;
+  border: 1px solid #edf1f5;
+  border-radius: 10px;
+  padding: 12px;
+  background: #fafbfd;
+  margin-top: 10px;
+}
+
+.advanced-section.open {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.advanced-section .row {
+  flex: 1 1 220px;
+  min-width: 180px;
+}
+
+.global-advanced {
+  width: 100%;
+  margin-bottom: 12px;
+}
