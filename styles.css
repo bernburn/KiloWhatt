@@ -143,6 +143,9 @@ body {
   background: transparent;
 }
 
+.appliance-behavior {
+  max-width: 120px;
+}
 /* Action buttons */
 .form-actions {
   display: flex;
@@ -337,7 +340,7 @@ table td {
   overflow-y: auto;
   z-index: 20;
   display: none;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
 }
 
 .type-item {
