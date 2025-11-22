@@ -432,20 +432,25 @@ table td {
   margin-bottom: 12px;
 }
 
-.row{
+.row {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-#global-rate, #global-voltage{
+#global-rate,
+#global-voltage {
   background-color: #9ea1a432;
   border-radius: 2px;
   border: #2c353f solid 1px;
-  padding: 2px;
+  padding: 8px 10px;
+  font-size: 0.95rem;
+  border-radius: 8px;
+  border: 1px solid #dbe7e9;
+  background: transparent;
 }
 
-.appliance-behavior{
+.appliance-behavior {
   width: 90%;
   display: flex;
   justify-content: center;
