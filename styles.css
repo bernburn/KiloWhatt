@@ -431,3 +431,23 @@ table td {
   width: 100%;
   margin-bottom: 12px;
 }
+
+.row{
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#global-rate, #global-voltage{
+  background-color: #9ea1a432;
+  border-radius: 2px;
+  border: #2c353f solid 1px;
+  padding: 2px;
+}
+
+.appliance-behavior{
+  width: 90%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
