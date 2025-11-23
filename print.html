@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>KILOWHATT? - Print</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="icon" href="./assets/LOGO.png" />
+    <style>
+      /* Optional: additional print styles */
+      body {
+        margin: 20px;
+        font-family: Arial, sans-serif;
+      }
+      header {
+        margin-bottom: 20px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <header class="header app-header">
+      <img src="./assets/LOGO.png" width="50px" />
+      <h1>KILOWHATT?</h1>
+      <p class="sub"></p>
+    </header>
+
+    <!-- Content will be injected here dynamically -->
+    <div id="printContent"></div>
+
+    <script>
+      // Grab the Gemini content from the opener window and inject it
+      if (window.opener) {
+        const content =
+          window.opener.document.getElementById("geminiContent").innerHTML;
+        document.getElementById("printContent").innerHTML = content;
+
+        // Automatically trigger print
+        requestAnimationFrame(() => {
+          window.print();
+        });
+      }
+    </script>
+  </body>
+</html>

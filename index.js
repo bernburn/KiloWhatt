@@ -26,11 +26,31 @@ const globalRateInput = document.getElementById("global-rate");
 const globalVoltageSelect = document.getElementById("global-voltage");
 
 const voltageRegions = [
-  { label: "NCR (Metro Manila) - Meralco (230V)", value: "NCR (Metro Manila)", rate: 13.4702 },
-  { label: "Region 3 (Central Luzon) - Meralco (230V)", value: "Region 3 (Central Luzon)", rate: 13.4702 },
-  { label: "Cebu Province (Metro Cebu) - VECO (230V)", value: "Cebu Province (Metro Cebu)", rate: 11.51 },
-  { label: "Iloilo City (Region 6) - MORE Power (230V)", value: "Iloilo City (Region 6)", rate: 12.6195 },
-  { label: "Southern Cebu - CEBECO I (230V)", value: "Southern Cebu", rate: 13.30 },
+  {
+    label: "NCR (Metro Manila) - Meralco (230V)",
+    value: "NCR (Metro Manila)",
+    rate: 13.4702,
+  },
+  {
+    label: "Region 3 (Central Luzon) - Meralco (230V)",
+    value: "Region 3 (Central Luzon)",
+    rate: 13.4702,
+  },
+  {
+    label: "Cebu Province (Metro Cebu) - VECO (230V)",
+    value: "Cebu Province (Metro Cebu)",
+    rate: 11.51,
+  },
+  {
+    label: "Iloilo City (Region 6) - MORE Power (230V)",
+    value: "Iloilo City (Region 6)",
+    rate: 12.6195,
+  },
+  {
+    label: "Southern Cebu - CEBECO I (230V)",
+    value: "Southern Cebu",
+    rate: 13.3,
+  },
 ];
 
 const appliances = [
@@ -94,7 +114,6 @@ function populateVoltageOptions() {
 
 populateVoltageOptions();
 
-
 let idCounter = 0;
 function uid(prefix = "id") {
   idCounter += 1;
@@ -114,7 +133,9 @@ function createApplianceEntry(data = {}) {
     <div class="row full-width autocomplete-container">
       <label for="${entryId}-name">Appliance Name</label>
       <input type="text" id="${entryId}-name" class="appliance-name"
-        value="${data.name || ""}" placeholder="e.g., Aircon" autocomplete="off">
+        value="${
+          data.name || ""
+        }" placeholder="e.g., Aircon" autocomplete="off">
       <div class="autocomplete-list"></div>
     </div>
 
@@ -122,7 +143,9 @@ function createApplianceEntry(data = {}) {
       <div class="row">
         <label for="${entryId}-type">Appliance Type</label>
         <div class="type-wrapper">
-          <input type="text" id="${entryId}-type" class="appliance-type" value="${data.type || ""}" placeholder="e.g., Inverter">
+          <input type="text" id="${entryId}-type" class="appliance-type" value="${
+    data.type || ""
+  }" placeholder="e.g., Inverter">
           <button class="type-dropdown-btn" type="button">▼</button>
           <div class="type-dropdown-menu"></div>
         </div>
@@ -130,19 +153,27 @@ function createApplianceEntry(data = {}) {
 
       <div class="row">
         <label for="${entryId}-watts">Power (Watts)</label>
-        <input type="number" id="${entryId}-watts" class="appliance-watts" value="${data.watts || 0}" min="0">
+        <input type="number" id="${entryId}-watts" class="appliance-watts" value="${
+    data.watts || 0
+  }" min="0">
       </div>
 
       <div class="row">
         <label for="${entryId}-hours">Hours Used Daily</label>
-        <input type="number" id="${entryId}-hours" class="appliance-hours" value="${data.hoursUsed || 0}" min="0" max="24">
+        <input type="number" id="${entryId}-hours" class="appliance-hours" value="${
+    data.hoursUsed || 0
+  }" min="0" max="24">
       </div>
 
       <div class="row slider-row">
         <label for="${entryId}-behavior">Estimated Usage Behavior (%)</label>
         <div class="slider-wrapper">
-          <input type="range" id="${entryId}-behavior" class="appliance-behavior" min="10" max="100" step="5" value="${data.usageBehaviorPercent || 100}">
-          <span class="behavior-value">${data.usageBehaviorPercent || 100}%</span>
+          <input type="range" id="${entryId}-behavior" class="appliance-behavior" min="10" max="100" step="5" value="${
+    data.usageBehaviorPercent || 100
+  }">
+          <span class="behavior-value">${
+            data.usageBehaviorPercent || 100
+          }%</span>
         </div>
       </div>
     </div>
@@ -177,12 +208,12 @@ function createApplianceEntry(data = {}) {
     autoBox.innerHTML = "";
     if (!text) return;
 
-    const matches = appliances.filter(a =>
-      a.applianceName.some(n => n.toLowerCase().includes(text))
+    const matches = appliances.filter((a) =>
+      a.applianceName.some((n) => n.toLowerCase().includes(text))
     );
 
-    matches.forEach(match => {
-      match.applianceName.forEach(name => {
+    matches.forEach((match) => {
+      match.applianceName.forEach((name) => {
         const item = document.createElement("div");
         item.className = "auto-item";
         item.textContent = name;
@@ -204,7 +235,7 @@ function createApplianceEntry(data = {}) {
       return;
     }
 
-    types.forEach(t => {
+    types.forEach((t) => {
       const item = document.createElement("div");
       item.className = "type-item";
       item.textContent = t;
@@ -284,8 +315,10 @@ function createApplianceEntry(data = {}) {
   nameInput.addEventListener("input", () => {
     updateSuggestions();
 
-    const match = appliances.find(ap =>
-      ap.applianceName.some(n => n.toLowerCase() === nameInput.value.toLowerCase())
+    const match = appliances.find((ap) =>
+      ap.applianceName.some(
+        (n) => n.toLowerCase() === nameInput.value.toLowerCase()
+      )
     );
 
     if (match) {
@@ -297,7 +330,10 @@ function createApplianceEntry(data = {}) {
 
   typeInput.addEventListener("input", () => {
     if (!matchedApplianceData) return;
-    const behavior = resolveBehaviorValue(matchedApplianceData, typeInput.value.trim());
+    const behavior = resolveBehaviorValue(
+      matchedApplianceData,
+      typeInput.value.trim()
+    );
     if (behavior != null) {
       applyBehaviorValue(behavior);
     }
@@ -307,7 +343,6 @@ function createApplianceEntry(data = {}) {
     behaviorValue.textContent = `${behaviorInput.value}%`;
     renderAnalysisPreview();
   });
-
 
   /* remove row */
   entry.querySelector(".remove-row").addEventListener("click", () => {
@@ -502,3 +537,26 @@ if (globalAdvancedToggle && globalAdvancedSection) {
   });
 }
 
+// SAVE GEMINI OUTPUT AS PDF
+
+// Source - https://stackoverflow.com/a
+// Posted by Kevin Florida, modified by community. See post 'Timeline' for change history
+// Retrieved 2025-11-23, License - CC BY-SA 4.0
+
+let savePdfBtn = document.getElementById("downloadGeminiOutput");
+
+function printDiv() {
+  const geminiContent = document.getElementById("geminiContent").innerText;
+  if (
+    geminiContent ===
+    "No output yet. Press Generate to send inputs to the server and receive Gemini's output here."
+  ) {
+    alert("No content available for printing.");
+    return;
+  }
+
+  // Open the print page in a new window
+  window.open("print.html", "_blank");
+}
+
+savePdfBtn.addEventListener("click", printDiv);

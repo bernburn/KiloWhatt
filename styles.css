@@ -456,3 +456,19 @@ table td {
   justify-content: center;
   align-items: center;
 }
+
+// Source - https://stackoverflow.com/a
+// Posted by Bennett McElwee, modified by community. See post 'Timeline' for change history
+// Retrieved 2025-11-23, License - CC BY-SA 4.0
+
+@media print {
+  body {
+    visibility: hidden;
+  }
+  #geminiContent {
+    visibility: visible;
+    position: absolute;
+    left: 0;
+    top: 0;
+  }
+}
