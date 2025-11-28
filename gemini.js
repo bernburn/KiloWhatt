@@ -45,9 +45,15 @@ Mandatory Procedure:
      • Usage Behavior Percent (0-100%)
      • Voltage Region (read-only; do not modify calculations)
    - Note any missing or invalid entries.
+   **DO NOT RECALCULATE MONTHLY KWH OR COST.** Use the provided values for all reporting.
 
 2. Calculations (High-Accuracy Model):
-   - Effective Power (Watts):
+- **SKIP THE MAIN CALCULATION STEPS (Effective Power, Daily kWh, Monthly kWh, Monthly Cost).**
+    - The Monthly kWh and Monthly Cost fields are pre-calculated in the input data and represent the final, rounded values. Use these directly.
+    - You must still use the formulas provided below ONLY when calculating **potential savings** (Step 4), as this involves modifying Watts or Hours:
+   
+    ⚠️ KEEP these formulas as a reference for calculating 'Savings' only:
+    - Effective Power (Watts):
         Effective_Power = Power_Rating * (Usage_Behavior / 100)
 
    - Daily kWh:
@@ -86,7 +92,7 @@ Mandatory Procedure:
    - Use an internal <style> tag ONLY for styling your own output.
    - DO NOT modify or reference the website's global CSS files.
    - Include:
-       • Summary Table
+       • Summary Table with Total Monthly kWh and Cost
        • Energy Hog List
        • Recommendations
        • Total possible monthly savings (PHP)

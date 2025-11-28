@@ -379,16 +379,46 @@ function gatherInputData() {
 
 function calculateAnalysis(inputs) {
   return inputs.map((d) => {
+    // 1. Calculate Effective Power (Active Use)
     const behaviorFactor = isNaN(d.usageBehaviorPercent)
       ? 1
       : d.usageBehaviorPercent / 100;
+      
+    // Equivalent to: Effective_Power = Power_Rating * (Usage_Behavior / 100)
     const adjustedWatts = d.watts * behaviorFactor;
-    const monthlyKwh = (adjustedWatts * d.hoursUsed * 30) / 1000;
+
+    // 2. Calculate Active Daily kWh
+    // Equivalent to: Daily_kWh = (Effective_Power * Daily_Use_Hours) / 1000
+    const activeDailyKwh = (adjustedWatts * d.hoursUsed) / 1000;
+    
+    // 3. Calculate Standby Daily kWh
+    // Check if standbyWatts is provided and positive. If not, assume 0.
+    const standbyWatts = d.standbyWatts || 0;
+    // Standby_Hours is often derived as 24 - hoursUsed. Use d.standbyHours if available.
+    const standbyHours = d.standbyHours || Math.max(0, 24 - (d.hoursUsed || 0));
+    
+    // Equivalent to: Standby_kWh = (Standby_Watts * Standby_Hours) / 1000
+    const standbyDailyKwh = (standbyWatts * standbyHours) / 1000;
+    
+    // 4. Calculate Total Monthly kWh
+    // Equivalent to: Monthly_kWh = (Daily_kWh + Standby_kWh) * 30
+    const totalDailyKwh = activeDailyKwh + standbyDailyKwh;
+    const monthlyKwh = totalDailyKwh * 30;
+
+    // 5. Calculate Monthly Cost (PHP)
+    // Equivalent to: Monthly_Cost = Monthly_kWh * Utility_Rate
     const monthlyCost = monthlyKwh * d.ratePhpPerKwh;
-    return { ...d, adjustedWatts, monthlyKwh, monthlyCost };
+
+    return { 
+      ...d, 
+      adjustedWatts, 
+      activeDailyKwh,
+      standbyDailyKwh,
+      monthlyKwh, 
+      monthlyCost 
+    };
   });
 }
-
 function renderAnalysisPreview() {
   const inputs = gatherInputData();
   const analysis = calculateAnalysis(inputs);
@@ -397,6 +427,12 @@ function renderAnalysisPreview() {
     analysisArea.innerHTML = "<p>No appliances to analyze.</p>";
     return;
   }
+
+  // 1. Calculate the total monthly cost
+  const totalMonthlyCost = analysis.reduce(
+    (total, item) => total + item.monthlyCost,
+    0
+  );
 
   let table = `
     <table>
@@ -423,7 +459,18 @@ function renderAnalysisPreview() {
       </tr>
     `;
   });
-  table += "</tbody></table>";
+
+  // 2. Add a footer row for the total monthly cost
+  table += `
+      </tbody>
+      <tfoot>
+        <tr>
+          <th colspan="3" style="text-align: right;">Total Monthly Cost:</th>
+          <th>${totalMonthlyCost.toFixed(2)}</th>
+        </tr>
+      </tfoot>
+    </table>
+  `;
   analysisArea.innerHTML = table;
 }
 
@@ -474,36 +521,37 @@ resetRowsBtn.addEventListener("click", () => {
 });
 
 generateBtn.addEventListener("click", async () => {
-  const inputs = gatherInputData();
-  const err = validateInputs(inputs);
-  if (err) {
-    validationMessage.textContent = err;
-    return;
-  }
-  validationMessage.textContent = "";
-  renderAnalysisPreview(); // show the deterministic numbers before sending
-
-  // Prefer explicit input, fall back to a key in localStorage (local testing only)
-  const defaultApiKey = "AIzaSyBw5d8MMPUaD3MRzoGKly3PS3nder1LQj4";
-  const apiKey = defaultApiKey;
-
-  // Save key to local storage for persistence
-
-  if (apiKey) {
-    // call Gemini directly from client using the provided API key (local testing only)
-    try {
-      geminiContent.textContent = "Calling Gemini (client-side)...";
-      // FIX: The sendToGemini function now correctly accepts the apiKey as the second argument
-      const res = await sendToGemini(inputs, apiKey);
-      geminiContent.innerHTML = res ?? "(no text returned)";
-    } catch (err) {
-      console.error(err);
-      geminiContent.textContent = `Gemini error: ${err.message || err}`;
+    const inputs = gatherInputData();
+    const err = validateInputs(inputs);
+    if (err) {
+        validationMessage.textContent = err;
+        return;
     }
-  } else {
-    // fallback to local analysis
-    generateLocalAnalysis(inputs);
-  }
+    validationMessage.textContent = "";
+
+    // 1. Run the client-side High-Accuracy Calculation (Source of Truth)
+    const analysis = calculateAnalysis(inputs); // This array now includes monthlyKwh and monthlyCost
+
+    renderAnalysisPreview(); // show the deterministic numbers before sending
+
+    // Prefer explicit input, fall back to a key in localStorage (local testing only)
+    const defaultApiKey = "AIzaSyAhM165xDsq1vB8lNCgqDe8g27Ji1irh3g";
+    const apiKey = defaultApiKey;
+
+    if (apiKey) {
+        try {
+            geminiContent.textContent = "Calling Gemini (client-side)...";
+            // 2. PASS THE PRE-CALCULATED 'analysis' ARRAY TO GEMINI
+            const res = await sendToGemini(analysis, apiKey); // Change 'inputs' to 'analysis'
+            geminiContent.innerHTML = res ?? "(no text returned)";
+        } catch (err) {
+            console.error(err);
+            geminiContent.textContent = `Gemini error: ${err.message || err}`;
+        }
+    } else {
+        // fallback to local analysis
+        generateLocalAnalysis(inputs);
+    }
 });
 
 // initialize with one example row
