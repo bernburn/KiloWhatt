@@ -484,7 +484,7 @@ generateBtn.addEventListener("click", async () => {
   renderAnalysisPreview(); // show the deterministic numbers before sending
 
   // Prefer explicit input, fall back to a key in localStorage (local testing only)
-  const defaultApiKey = "AIzaSyAU4B1xqTSSryka93yC1RBG5IlSgdxWESI";
+  const defaultApiKey = "AIzaSyD8hw5xOvOm6Nmhw7USmh5XvQudBAwplSk";
   const apiKey = defaultApiKey;
 
   // Save key to local storage for persistence

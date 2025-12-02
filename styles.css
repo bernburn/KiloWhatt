@@ -52,9 +52,9 @@ body {
 /* Main grid */
 .main-grid {
   width: 100%;
-  max-width: 1200px;
+  max-width: 1300px;
   display: grid;
-  grid-template-columns: 1fr 420px;
+  grid-template-columns: 1fr 500px;
   gap: 20px;
 }
 
@@ -151,6 +151,7 @@ body {
   display: flex;
   gap: 12px;
   margin-top: 12px;
+  justify-content: space-between;
 }
 .btn {
   border: none;
@@ -218,6 +219,8 @@ body {
 /* small table styles used by analysis preview */
 table {
   border-collapse: collapse;
+  width: 100%;
+  table-layout: fixed;
 }
 table th {
   background: var(--accent);
@@ -227,6 +230,12 @@ table th {
 table td {
   border-top: 1px solid #eef6f7;
   padding: 8px;
+}
+
+table td:first-child {
+  /* This is the cell containing the Appliance name */
+  word-break: break-word; /* For compatibility with older browsers */
+  overflow-wrap: break-word; /* Standard way to break long words */
 }
 
 /* Footer note */
@@ -457,9 +466,9 @@ table td {
   align-items: center;
 }
 
-// Source - https://stackoverflow.com/a
+/* // Source - https://stackoverflow.com/a
 // Posted by Bennett McElwee, modified by community. See post 'Timeline' for change history
-// Retrieved 2025-11-23, License - CC BY-SA 4.0
+// Retrieved 2025-11-23, License - CC BY-SA 4.0 */
 
 @media print {
   body {
