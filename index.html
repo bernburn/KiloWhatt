@@ -4,31 +4,29 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>KILOWHATT?</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="dist/output.css" />
     <link rel="icon" href="./assets/LOGO.png" />
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   </head>
 
   <body>
-    <header class="header app-header">
-      <img src="./assets/LOGO.png" width="50px" />
-      <h1>KILOWHATT?</h1>
-      <p class="sub"></p>
+    <header class="flex items-center justify-center gap-3 pt-10 pb-4">
+      <img src="./assets/LOGO.png" width="50" alt="Logo" />
+      <h1 class="text-4xl md:text-5xl font-bold tracking-tight text-primary">KILOWHATT?</h1>
     </header>
-    <div class="app">
-      <main class="main-grid">
-        <section class="panel panel-left">
-          <div class="panel-header">
-            <h2>Appliances</h2>
-            <div class="panel-actions">
-              
-              <button id="resetRows" class="btn btn-ghost">Reset</button>
-            </div>
+    <div class="w-full max-w-7xl mx-auto px-4 py-4 md:pb-12">
+      <main class="grid grid-cols-1 lg:grid-cols-[1.2fr,1fr] gap-6">
+        <section class="bg-white rounded-3xl p-8 border border-slate-200 shadow-xl">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-bold text-primary">Appliances</h2>
+            <button id="resetRows" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm font-semibold transition">Reset</button>
           </div>
 
-          <div class="global-advanced">
+          <div class="mb-4">
             <button
               id="globalAdvancedToggle"
-              class="advanced-toggle-btn"
+              class="w-full flex items-center justify-between px-4 py-3 bg-white border border-slate-200 rounded-xl font-semibold transition hover:border-accent"
               type="button"
               aria-expanded="false"
             >
@@ -37,70 +35,61 @@
             </button>
             <div
               id="globalAdvancedSection"
-              class="advanced-section"
+              class="hidden mt-3 p-4 border border-dashed border-slate-300 rounded-xl bg-slate-50"
               aria-hidden="true"
             >
-              <div class="row">
-                <label for="global-rate">Utility Rate (PHP/kWh)</label>
+              <div class="mb-3">
+                <label for="global-rate" class="block text-sm font-semibold mb-2">Utility Rate (PHP/kWh)</label>
                 <input
                   type="number"
                   id="global-rate"
                   min="0"
                   step="0.01"
                   value="13.4702"
+                  class="w-full p-3 rounded-xl border border-slate-200"
                 />
               </div>
-              <div class="row">
-                <label for="global-voltage">Voltage Region</label>
-                <select id="global-voltage"></select>
+              <div>
+                <label for="global-voltage" class="block text-sm font-semibold mb-2">Voltage Region</label>
+                <select id="global-voltage" class="w-full p-3 rounded-xl border border-slate-200"></select>
               </div>
             </div>
           </div>
 
-          <div
-            id="appliance-list"
-            class="appliance-list"
-            aria-live="polite"
-          ></div>
+          <div id="appliance-list" class="flex flex-col gap-4" aria-live="polite"></div>
 
-          <div class="panel-footer">
-            <div
-              id="validationMessage"
-              class="validation"
-              aria-live="assertive"
-            ></div>
-            <div class="form-actions" style="margin-top: 12px">
-              <button id="generateButton" class="btn btn-success">
+          <div class="mt-8 pt-6 border-t border-dashed border-slate-200">
+            <div id="validationMessage" class="text-red-500 font-semibold text-sm mb-4" aria-live="assertive"></div>
+            <div class="flex flex-wrap gap-3">
+              <button id="generateButton" class="px-6 py-3 bg-gradient-to-r from-accent to-accent-strong text-primary rounded-xl font-bold shadow-lg shadow-yellow-500/20 transition hover:-translate-y-0.5">
                 Generate Report
               </button>
-              <button id="addRow" class="btn btn-primary">
+              <button id="addRow" class="px-6 py-3 bg-primary text-white rounded-xl font-bold shadow-lg transition hover:-translate-y-0.5">
                 + Add Appliance
               </button>
             </div>
           </div>
         </section>
 
-        <section class="panel panel-right">
-          <div class="panel-header">
-            <h2>Analysis Preview</h2>
-            <div class="small-note">Calculations use 30 days/month</div>
+        <section class="bg-white rounded-3xl p-8 border border-slate-200 shadow-xl">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-bold text-primary">Analysis Preview</h2>
+            <div class="text-sm text-slate-500">Calculations use 30 days/month</div>
           </div>
-
-          <div id="analysisArea" class="analysis-area"></div>
-
-          <div class="panel-divider" style="height: 12px"></div>
+          <div id="analysisArea" class="space-y-4"></div>
         </section>
-        <div class="panel panel-bottom">
-          <div class="panel-header">
-            <h2>Gemini Output</h2>
-            <button id="downloadGeminiOutput" class="btn btn-ghost">
+        
+        <div class="lg:col-span-2 bg-white rounded-3xl p-8 border border-slate-200 shadow-xl">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-bold text-primary">Gemini Output</h2>
+            <button id="downloadGeminiOutput" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm font-semibold transition">
               Save as PDF
             </button>
           </div>
 
-          <div id="geminiArea" class="gemini-area">
-            <div id="geminiCard" class="card">
-              <div class="card-body" id="geminiContent">
+          <div id="geminiArea" class="mt-4">
+            <div class="p-6 bg-slate-50 rounded-2xl border border-slate-200">
+              <div class="leading-relaxed" id="geminiContent">
                 No output yet. Press Generate to send inputs to the server and
                 receive Gemini's output here.
               </div>
