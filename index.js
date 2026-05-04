@@ -10,6 +10,8 @@ const DOM = {
   analysisArea: document.getElementById("analysisArea"),
   geminiContent: document.getElementById("geminiContent"),
   globalRateInput: document.getElementById("global-rate"),
+  globalAdvancedToggle: document.getElementById("globalAdvancedToggle"),
+  globalAdvancedSection: document.getElementById("globalAdvancedSection"),
   billForm: document.getElementById('bill-form'),
   sidebar: document.getElementById('sidebar'),
   downloadPdfBtn: document.getElementById('downloadGeminiOutput')
@@ -25,14 +27,58 @@ async function init() {
   await fetchPresets();
   await fetchUserAppliances();
   setupEventListeners();
+  setAdvancedOptionsOpen(false);
+  refreshIcons();
 }
 
 function setupEventListeners() {
-    DOM.addRowBtn.addEventListener("click", () => createApplianceEntry());
-    DOM.resetRowsBtn.addEventListener("click", async () => {
-        const result = await Swal.fire({ title: 'Clear everything?', icon: 'warning', showCancelButton: true });
-        if (result.isConfirmed) { DOM.applianceList.innerHTML = ""; createApplianceEntry(); renderAnalysisPreview(); }
-    });
+    if (DOM.addRowBtn) {
+      DOM.addRowBtn.addEventListener("click", handleAddAppliance);
+    }
+
+    if (DOM.resetRowsBtn) {
+      DOM.resetRowsBtn.addEventListener("click", handleResetAppliances);
+    }
+
+    if (DOM.globalAdvancedToggle && DOM.globalAdvancedSection) {
+      DOM.globalAdvancedToggle.addEventListener("click", toggleAdvancedOptions);
+    }
+}
+
+async function handleResetAppliances() {
+  const result = await Swal.fire({ title: 'Clear everything?', icon: 'warning', showCancelButton: true });
+  if (result.isConfirmed) {
+    DOM.applianceList.innerHTML = "";
+    createApplianceEntry();
+    renderAnalysisPreview();
+  }
+}
+
+function handleAddAppliance() {
+  createApplianceEntry();
+  renderAnalysisPreview();
+}
+
+function toggleAdvancedOptions() {
+  const isOpen = DOM.globalAdvancedToggle.getAttribute("aria-expanded") === "true";
+  setAdvancedOptionsOpen(!isOpen);
+}
+
+function setAdvancedOptionsOpen(isOpen) {
+  if (!DOM.globalAdvancedToggle || !DOM.globalAdvancedSection) {
+    return;
+  }
+
+  DOM.globalAdvancedToggle.setAttribute("aria-expanded", String(isOpen));
+  DOM.globalAdvancedToggle.classList.toggle("is-open", isOpen);
+  DOM.globalAdvancedSection.classList.toggle("open", isOpen);
+  DOM.globalAdvancedSection.setAttribute("aria-hidden", String(!isOpen));
+}
+
+function refreshIcons() {
+  if (window.lucide) {
+    lucide.createIcons();
+  }
 }
 
 
@@ -72,6 +118,9 @@ async function fetchUserAppliances() {
                 usageBehaviorPercent: app.usage_behavior_percent
             }));
         }
+        if (!saved || !Array.isArray(saved) || saved.length === 0) {
+            createApplianceEntry();
+        }
         renderAnalysisPreview();
     } catch (err) { console.error("Persistence failed:", err); }
 }
@@ -97,40 +146,49 @@ function createApplianceEntry(data = {}) {
   if (data.dbId) entry.dataset.dbId = data.dbId;
 
   entry.innerHTML = `
-    <div class="form-group" style="margin-bottom: 0;">
-      <label>Appliance Name</label>
-      <div style="position: relative;">
-        <input type="text" class="appliance-name" value="${data.name || ""}" placeholder="e.g. Inverter Aircon" autocomplete="off">
-        <div class="autocomplete-list glass-panel" style="position: absolute; width: 100%; z-index: 100; display: none; margin-top: 4px; background: white; border: 1px solid var(--border); max-height: 200px; overflow-y: auto;"></div>
+    <div class="appliance-card-header">
+      <div>
+        <p class="appliance-card-title">${data.name || "Appliance"}</p>
+        <p class="appliance-card-meta">Usage inputs for monthly estimate</p>
       </div>
-    </div>
-
-    <div class="form-group" style="margin-bottom: 0;">
-      <label>Watts</label>
-      <input type="number" class="appliance-watts" value="${data.watts || 0}" min="0">
-    </div>
-
-    <div class="form-group" style="margin-bottom: 0;">
-      <label>Daily Hours</label>
-      <input type="number" class="appliance-hours" value="${data.hoursUsed || 0}" min="0" max="24">
-    </div>
-
-    <div class="form-group" style="margin-bottom: 0;">
-      <label>Usage Behavior (%)</label>
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <input type="range" class="appliance-behavior" min="10" max="100" step="5" value="${data.usageBehaviorPercent || 100}" style="flex: 1;">
-        <span class="behavior-label" style="font-weight: 600; width: 42px; font-size: 0.85rem;">${data.usageBehaviorPercent || 100}%</span>
-      </div>
-    </div>
-
-    <button class="btn btn-danger btn-remove" style="padding: 8px; width: 38px; height: 38px; min-height: 38px; flex-shrink: 0;" title="Remove">
+      <button class="btn btn-danger btn-remove appliance-remove-btn" type="button" title="Remove appliance" aria-label="Remove appliance">
         <i data-lucide="trash-2" size="16"></i>
-    </button>
+      </button>
+    </div>
+
+    <div class="appliance-grid">
+      <div class="form-group appliance-name-group">
+        <label>Appliance Name</label>
+        <div class="autocomplete-wrapper">
+        <input type="text" class="appliance-name" value="${data.name || ""}" placeholder="e.g. Inverter Aircon" autocomplete="off">
+        <div class="autocomplete-list glass-panel"></div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Watts</label>
+        <input type="number" class="appliance-watts input-compact" value="${data.watts || 0}" min="0">
+      </div>
+
+      <div class="form-group">
+        <label>Daily Hours</label>
+        <input type="number" class="appliance-hours input-compact" value="${data.hoursUsed || 0}" min="0" max="24">
+      </div>
+
+      <div class="form-group">
+        <label>Usage Behavior (%)</label>
+        <div class="behavior-row">
+          <input type="range" class="appliance-behavior" min="10" max="100" step="5" value="${data.usageBehaviorPercent || 100}">
+          <span class="behavior-label">${data.usageBehaviorPercent || 100}%</span>
+        </div>
+      </div>
+    </div>
   `;
 
   DOM.applianceList.appendChild(entry);
-  lucide.createIcons();
+  refreshIcons();
 
+  const entryTitle = entry.querySelector(".appliance-card-title");
   const nameInput = entry.querySelector(".appliance-name");
   const autoBox = entry.querySelector(".autocomplete-list");
   const wattsInput = entry.querySelector(".appliance-watts");
@@ -141,6 +199,7 @@ function createApplianceEntry(data = {}) {
 
   nameInput.addEventListener("input", () => {
     const text = nameInput.value.toLowerCase();
+    entryTitle.textContent = nameInput.value.trim() || "Appliance";
     autoBox.innerHTML = "";
     if (!text) { autoBox.style.display = 'none'; return; }
     const matches = state.presets.filter(p => p.name.toLowerCase().includes(text));
@@ -235,14 +294,16 @@ DOM.generateBtn.addEventListener("click", async () => {
       Swal.close();
       DOM.geminiContent.innerHTML = data.output;
       initChartsFromOutput();
-      showSection('recommendations', document.querySelector('[onclick*="recommendations"]'));
+      if (typeof window.showSection === "function") {
+        window.showSection('recommendations', document.querySelector('[onclick*="recommendations"]'));
+      }
       Swal.fire({ icon: 'success', title: 'Audit Ready', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
     } catch (err) { Swal.fire('AI Failure', err.message, 'error'); }
 });
 
 function initChartsFromOutput() {
     const chartDataEl = document.getElementById('chart-data-json');
-    if (!chartDataEl) return;
+    if (!chartDataEl || typeof window.Chart === "undefined") return;
     try {
         const data = JSON.parse(chartDataEl.textContent);
         const parent = chartDataEl.parentNode;
@@ -329,12 +390,5 @@ if (DOM.billForm) {
     }
   });
 }
-
-// Events & Start
-DOM.addRowBtn.addEventListener("click", () => createApplianceEntry());
-DOM.resetRowsBtn.addEventListener("click", async () => {
-    const result = await Swal.fire({ title: 'Clear everything?', icon: 'warning', showCancelButton: true });
-    if (result.isConfirmed) { DOM.applianceList.innerHTML = ""; createApplianceEntry(); renderAnalysisPreview(); }
-});
 
 init();

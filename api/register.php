@@ -1,36 +1,32 @@
 <?php
 // api/register.php
-require_once 'db.php';
+require_once __DIR__ . '/db.php';
 
 header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['error' => 'Method Not Allowed']);
-    exit;
+    apiJsonResponse(405, ['success' => false, 'error' => 'Method Not Allowed']);
 }
 
 $input = json_decode(file_get_contents('php://input'), true);
+if (!is_array($input)) {
+    apiJsonResponse(400, ['success' => false, 'error' => 'Invalid JSON request body.']);
+}
+
 $name = trim($input['name'] ?? '');
 $email = trim($input['email'] ?? '');
 $password = $input['password'] ?? '';
 
 if (empty($name) || empty($email) || empty($password)) {
-    http_response_code(400);
-    echo json_encode(['error' => 'All fields are required.']);
-    exit;
+    apiJsonResponse(400, ['success' => false, 'error' => 'All fields are required.']);
 }
 
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    http_response_code(400);
-    echo json_encode(['error' => 'Invalid email format.']);
-    exit;
+    apiJsonResponse(400, ['success' => false, 'error' => 'Invalid email format.']);
 }
 
 if (strlen($password) < 8) {
-    http_response_code(400);
-    echo json_encode(['error' => 'Password must be at least 8 characters long.']);
-    exit;
+    apiJsonResponse(400, ['success' => false, 'error' => 'Password must be at least 8 characters long.']);
 }
 
 try {
@@ -38,9 +34,7 @@ try {
     $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
     $stmt->execute([$email]);
     if ($stmt->fetch()) {
-        http_response_code(409);
-        echo json_encode(['error' => 'Email already registered.']);
-        exit;
+        apiJsonResponse(409, ['success' => false, 'error' => 'Email already registered.']);
     }
 
     // Hash password
@@ -50,9 +44,14 @@ try {
     $stmt = $pdo->prepare("INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, 'user')");
     $stmt->execute([$name, $email, $hashedPassword]);
 
-    echo json_encode(['message' => 'Registration successful! You can now login.']);
+    echo json_encode([
+        'success' => true,
+        'message' => 'Registration successful! You can now login.'
+    ]);
 } catch (PDOException $e) {
     error_log("Registration error: " . $e->getMessage());
-    http_response_code(500);
-    echo json_encode(['error' => 'An error occurred during registration.']);
+    apiJsonResponse(500, [
+        'success' => false,
+        'error' => 'An error occurred during registration.'
+    ]);
 }
